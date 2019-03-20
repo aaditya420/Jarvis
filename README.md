@@ -1,3 +1,3 @@
-# Emojidex
+# Jarvis
 
-Learn more about your favorite emoji with the [Twilio WhatsApp API](https://www.twilio.com/whatsapp/api).
+A WhatsApp based Personal Assistant. It currently tells me my college timetable which it fetches from the website using selenium for scraping.

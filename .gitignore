@@ -110,3 +110,5 @@ venv.bak/
 *.exe
 *.csv
 *.png
+
+config.py

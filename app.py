@@ -7,11 +7,7 @@ from flask import Flask, render_template, request
 from requests_html import HTMLSession
 from twilio.rest import Client
 
-
-TWILIO_ACCOUNT_SID="ACdb9304b0c1a9736432c77d3ce495e3f5"
-TWILIO_AUTH_TOKEN="f5db2c220080ad842bd8539b41960049"
-
-WHATSAPP_FROM_NUMBER="whatsapp:+14155238886"
+from config import *
 
 MSG_BODY = ""
 
@@ -64,7 +60,7 @@ def Main():
 
     try:
         df = pd.read_csv("TimeTable.csv")
-        render_mpl_table(df, header_columns=1, col_width=7).get_figure().savefig("TimeTableG.png", dpi=200)
+        TimeTable.render_mpl_table(df, header_columns=1, col_width=7).get_figure().savefig("TimeTableG.png", dpi=200)
     except:
         TimeTable.get_time_table()
 
