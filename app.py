@@ -2,6 +2,7 @@ import os
 import TimeTable
 import pandas as pd
 import random as rd
+import pyautogui as pg
 
 from flask import Flask, render_template, request
 from requests_html import HTMLSession
@@ -14,13 +15,14 @@ MSG_BODY = ""
 app = Flask(__name__)
 
 # Helper function to send WhatsApp messages
-def send_message(to, body):
+def send_message(to, body, media=None):
     # Initialize client
     client = Client(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN)
     client.messages.create(
         body=body,
         from_=WHATSAPP_FROM_NUMBER,
-        to=to
+        to=to,
+        media_url=media
     )
 
 # Helper function to get an emoji's description
@@ -60,7 +62,7 @@ def Main():
 
     try:
         df = pd.read_csv("TimeTable.csv")
-        TimeTable.render_mpl_table(df, header_columns=1, col_width=7).get_figure().savefig("TimeTableG.png", dpi=200)
+        # TimeTable.render_mpl_table(df, header_columns=1, col_width=7).get_figure().savefig("TimeTable.png", dpi=200)
     except:
         TimeTable.get_time_table()
 
@@ -93,27 +95,44 @@ def parse_msg(ql):
 
     ql = ql.lower()
 
-    if ("hi" in ql) or ("hello" in ql) or ("good morning" in ql) or ("hola" in ql) or ("hey" in ql):
-        resp = rd.choice(greetings)
-    
-    elif ("thank" in  ql) or ("bye" in ql):
-        resp = rd.choice(see_offs)
+    f = 0
 
-    elif ("next" in ql) and ("class" in ql):
-        resp = TimeTable.fetch_next_room_number(pd.read_csv("TimeTable.csv"))
+    resp = ""
+
+    if ("hi" in ql) or ("hello" in ql) or ("good morning" in ql) or ("hola" in ql) or ("hey" in ql):
+        resp = rd.choice(greetings) + " "
+        f = 1
+    
+    if (("lock" in ql) and ("pc" in ql)):
+        resp += "You're PC has been locked! "
+        import ctypes
+        ctypes.windll.user32.LockWorkStation()
+        f = 1        
+    
+    if ("send" in ql) and ("time table" in ql):
+        send_message(request.values['From'], None, MEDIA_URL)
+        resp += "Happy to Help! "
+        f = 1
+
+    if ("next" in ql) and ("class" in ql):
+        resp += TimeTable.fetch_next_room_number(pd.read_csv("TimeTable.csv")) + " "
     
     elif (("current" in ql) or ("now" in ql) or ("right" in ql)) and ("class" in ql):
-        resp = TimeTable.fetch_next_room_number(pd.read_csv("TimeTable.csv"), False)
+        resp += TimeTable.fetch_next_room_number(pd.read_csv("TimeTable.csv"), False) + " "
     
     elif (len(ql) == 1) and (ord(ql) > 200):
         resp = get_emojipedia_description(ql)
     
-    else:
+    elif f == 0:
         resp = rd.choice(errors)
+
+    if ("thank" in  ql) or ("bye" in ql):
+        resp += rd.choice(see_offs)
+        f = 1
 
     return resp
 
 
 if __name__ == "__main__":
     Main()
-    # app.run(debug=True)
+    app.run(debug=True)
