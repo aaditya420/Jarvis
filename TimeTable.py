@@ -64,6 +64,8 @@ def get_time_table():
 
     df.to_csv("TimeTable.csv", index=False)
 
+    render_mpl_table(df, header_columns=1, col_width=7).get_figure().savefig("TimeTable.png", dpi=200)
+
     return df
 
 
@@ -93,15 +95,15 @@ def render_mpl_table(data, col_width=3.0, row_height=3.5, font_size=32,
 # render_mpl_table(df, header_columns=1, col_width=7).get_figure().savefig("TimeTableG.png", dpi=200)
 
 def fetch_next_room_number(df, next_rn=True):
-    
+
     days = ["Mon", "Tue", "Wed", "Thu", "Fri"]
 
     currentDate = datetime.datetime.now()
     today = currentDate.strftime("%a")
 
     if today not in days:
-        return "Its A Holiday Mate!"
-    
+        print("Its A Holiday Mate!")
+
     slots = df.columns.tolist()[1:]
     slots = list(map(lambda x: x.split(" - "), slots))
     slots = [j for sub in slots for j in sub]
@@ -110,17 +112,20 @@ def fetch_next_room_number(df, next_rn=True):
     pos = 0
 
     for slot in slots:
-        slots_obj.append(currentDate.replace(hour=int(slot.split(":")[0]), minute=int(slot.split(":")[1][:2])))
-    
+        if "pm" in slot.lower():
+            slots_obj.append(currentDate.replace(hour=((int(slot.split(":")[0]) % 12) + 12), minute=int(slot.split(":")[1][:2])))
+        else:
+            slots_obj.append(currentDate.replace(hour=(int(slot.split(":")[0])), minute=int(slot.split(":")[1][:2])))
+
     if (currentDate > slots_obj[-1]):
         today = days[(days.index(today) + 1) % 5]
-    
+
     if not next_rn:
         if ((currentDate < slots_obj[0]) or (currentDate > slots_obj[-1])):
             return "You've no class right now!"
-        
+    
     for i in range(len(slots_obj)-1):
-        if ((currentDate > slots_obj[i]) and (currentDate < slots_obj[i+1])):
+        if ((currentDate >= slots_obj[i]) and (currentDate <= slots_obj[i+1])):
             if next_rn:
                 pos = i+2
             else:
@@ -128,12 +133,22 @@ def fetch_next_room_number(df, next_rn=True):
             break
 
     x = df.columns.tolist()[1:]
-    x = list(filter(lambda x: slots[pos] in x, x))[-1]
-    y = " ".join(str(df[df["Days"] == today.upper()][x]).split("\n")[0].split()[1:])
+
+    try:
+        x = list(filter(lambda x: slots[pos] in x, x))[-1]
+    except:
+        return "You've no class right now!"
     
+    y = " ".join(str(df[df["Days"] == today.upper()][x]).split("\n")[0].split()[1:])
+
     if next_rn:
-        return "You're next class is " + y
+        if "BREAK" in y:
+            return "Your next slot is *free*! Enjoy!"
+        return "You're next class is *" + y + "*"
+    
     else:
-        return "You're class right now is " + y
+        if "BREAK" in y:
+            return "You've a *break* right now! Enjoy!"
+        return "You're class right now is *" + y + "*"
 
 

@@ -3,6 +3,10 @@ import TimeTable
 import pandas as pd
 import random as rd
 import pyautogui as pg
+import ctypes
+import time
+from googlesearch import search
+import kg_api
 
 from flask import Flask, render_template, request
 from requests_html import HTMLSession
@@ -10,7 +14,7 @@ from twilio.rest import Client
 
 from config import *
 
-MSG_BODY = ""
+pg.PAUSE = 0.1
 
 app = Flask(__name__)
 
@@ -52,8 +56,12 @@ def get_emojipedia_description(character):
 def receive_message():
     # Get the querie
     querie = request.values.get('Body')
+    print(querie)
 
-    send_message(to=request.values['From'], body=parse_msg(querie))
+    reply = parse_msg(querie)
+    print(reply)
+
+    send_message(to=request.values['From'], body=reply)
 
     return ('', 204)
 
@@ -61,10 +69,19 @@ def receive_message():
 def Main():
 
     try:
-        df = pd.read_csv("TimeTable.csv")
+        pd.read_csv("TimeTable.csv")
         # TimeTable.render_mpl_table(df, header_columns=1, col_width=7).get_figure().savefig("TimeTable.png", dpi=200)
     except:
         TimeTable.get_time_table()
+
+
+def hibernate():
+    pg.press("win")
+    pg.press("tab", 2, 0.1)
+    pg.press("down", 3, 0.1)
+    pg.press("space")
+    pg.press("down")
+    pg.press("space")
 
 
 def parse_msg(ql):
@@ -90,7 +107,10 @@ def parse_msg(ql):
         "I did not understand that, sorry!",
         "I am sorry can you please be more specific?",
         "B*tch I don't do that sh*t no more!",
-        "Are you okay? Coz this is something I cannot do!"
+        "Are you okay? Coz this is something I cannot do!",
+        "Please say something sensible you moron!",
+        "Oh God!  Please make some sense!",
+        "I cannot take this sh*t no more, please say something sensible!"
     ]
 
     ql = ql.lower()
@@ -103,15 +123,58 @@ def parse_msg(ql):
         resp = rd.choice(greetings) + " "
         f = 1
     
+    if ("thank" in  ql) or ("bye" in ql):
+        resp += rd.choice(see_offs)
+        f = 1
+    
     if (("lock" in ql) and ("pc" in ql)):
         resp += "You're PC has been locked! "
-        import ctypes
         ctypes.windll.user32.LockWorkStation()
-        f = 1        
+        f = 1
+
+    if ("hibernate" in ql) and ("pc" in ql):
+        resp += "You're PC has been hibernated! " + rd.choice(see_offs)
+        f = 1
+        hibernate()
     
     if ("send" in ql) and ("time table" in ql):
-        send_message(request.values['From'], None, MEDIA_URL)
+        send_message(request.values['From'], "Here you go!", TT_URL)
         resp += "Happy to Help! "
+        f = 1
+
+    if ("send" in ql) and ("screen shot" in ql):
+        pg.screenshot("AutoScreenShot.png")
+        time.sleep(10)
+        send_message(request.values['From'], "Here you go!", SS_URL)
+        resp += "Hope that Helped! "
+        f = 1
+    
+    if ("google" in ql):
+        resp += "Here is what I found:\n\n"
+        s = " ".join(ql.split()[ql.split().index("google")+1:])
+        print(s)
+        
+        j = 1
+        for i in kg_api.google_search(s):
+            if "sorry! coudn't" in i.lower():
+                break
+            if len(resp) < 1000:
+                if i[-2] == "-":
+                    for k in search(i.split("*")[1], stop=1, tld="co.in"):
+                        resp += "*" + str(j) + "*. " + i + " " + k + "\n\n"    
+                        j += 1
+                else:
+                    resp += "*" + str(j) + "*. " + i + "\n\n"    
+                    j += 1
+        
+        # for i in search(s, num=5, stop=10, tld="co.in"):
+        #     resp += "*" + str(j) + ".* " + i + "\n\n"
+        
+        f = 1
+    
+    if ("update" in ql) and ("time table" in ql):
+        TimeTable.get_time_table()
+        resp += "Time Table successfully updated! "
         f = 1
 
     if ("next" in ql) and ("class" in ql):
@@ -124,11 +187,27 @@ def parse_msg(ql):
         resp = get_emojipedia_description(ql)
     
     elif f == 0:
-        resp = rd.choice(errors)
+        resp += "Here is what I found:\n\n"
+        # s = " ".join(ql.split()[ql.split().index("google")+1:])
+        # print(s)
+        
+        j = 1
+        for i in kg_api.google_search(ql):
+            if "sorry! coudn't" in i.lower():
+                break
+            if len(resp) < 1000:
+                if i[-2] == "-":
+                    for k in search(i.split("*")[1], stop=1, tld="co.in"):
+                        resp += "*" + str(j) + "*. " + i + " " + k + "\n\n"    
+                        j += 1
+                else:
+                    resp += "*" + str(j) + "*. " + i + "\n\n"    
+                    j += 1
 
-    if ("thank" in  ql) or ("bye" in ql):
-        resp += rd.choice(see_offs)
-        f = 1
+        # if "sorry! coudn't find anything!" in resp.lower():
+        #     resp = rd.choice(errors)
+    
+    print(len(resp))
 
     return resp
 
