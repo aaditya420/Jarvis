@@ -204,8 +204,8 @@ def parse_msg(ql):
                     resp += "*" + str(j) + "*. " + i + "\n\n"    
                     j += 1
 
-        # if "sorry! coudn't find anything!" in resp.lower():
-        #     resp = rd.choice(errors)
+        if "sorry! coudn't" in resp.lower():
+            resp = rd.choice(errors)
     
     print(len(resp))
 
