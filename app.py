@@ -62,6 +62,9 @@ def receive_message():
     print(reply)
 
     send_message(to=request.values['From'], body=reply)
+    
+    if "hibernated" in resp.lower():
+        hibernate()
 
     return ('', 204)
 
@@ -76,12 +79,8 @@ def Main():
 
 
 def hibernate():
-    pg.press("win")
-    pg.press("tab", 2, 0.1)
-    pg.press("down", 3, 0.1)
-    pg.press("space")
-    pg.press("down")
-    pg.press("space")
+    import os
+    os.system("shutdown.exe /h")
 
 
 def parse_msg(ql):
@@ -135,7 +134,6 @@ def parse_msg(ql):
     if ("hibernate" in ql) and ("pc" in ql):
         resp += "You're PC has been hibernated! " + rd.choice(see_offs)
         f = 1
-        hibernate()
     
     if ("send" in ql) and ("time table" in ql):
         send_message(request.values['From'], "Here you go!", TT_URL)
