@@ -7,8 +7,8 @@ import datetime
 from selenium import webdriver
 
 
-CLASS_ID = 10
-BATCH_ID = "CS 14"
+CLASS_ID = 4 
+BATCH_ID = "CS 1"
 
 def get_time_table():
 

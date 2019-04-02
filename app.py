@@ -245,8 +245,8 @@ def parse_msg(ql):
                     else:
                         resp += "*" + str(j) + "*. " + i + "\n\n"    
                         j += 1
-        except:
-            resp = rd.choice(errors)
+    except:
+        resp = rd.choice(errors)
     
     print(resp, len(resp))
 
