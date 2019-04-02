@@ -5,6 +5,7 @@ import random as rd
 import pyautogui as pg
 import ctypes
 import time
+import datetime
 from googlesearch import search
 import kg_api
 
@@ -14,9 +15,13 @@ from twilio.rest import Client
 
 from config import *
 
+
 pg.PAUSE = 0.1
+AUTOMATE = 0
+
 
 app = Flask(__name__)
+
 
 # Helper function to send WhatsApp messages
 def send_message(to, body, media=None):
@@ -28,6 +33,7 @@ def send_message(to, body, media=None):
         to=to,
         media_url=media
     )
+
 
 # Helper function to get an emoji's description
 def get_emojipedia_description(character):
@@ -52,25 +58,61 @@ def get_emojipedia_description(character):
         url=response.url
     )
 
+
 @app.route('/', methods=['GET', 'POST'])
 def receive_message():
     # Get the querie
     querie = request.values.get('Body')
-    print(querie)
 
-    reply = parse_msg(querie)
-    print(reply)
+    if ("auto" in querie.lower()):
+        if ("start" in querie.lower()):
+            AUTOMATE = 1
+            reply = "Automatic Updates Enabled!"
+        elif ("stop" in querie.lower()):
+            AUTOMATE = 0
+            reply = "Automatic Updates Disabled!"
+        else:
+            reply = parse_msg(querie)
+    else:
+        reply = parse_msg(querie)
 
     send_message(to=request.values['From'], body=reply)
     
-    if "hibernated" in resp.lower():
+    if "hibernated" in reply.lower():
         hibernate()
 
     return ('', 204)
 
 
-def Main():
+def automate_resp():
 
+    print("Automation Started and Running!")
+    
+    df = pd.read_csv("TimeTable.csv")
+    currentDate = datetime.datetime.now()
+    
+    slots = df.columns.tolist()[1:]
+    slots = list(map(lambda x: x.split(" - "), slots))
+    slots = [j for sub in slots for j in sub]
+    
+    slots_obj = []
+
+    for slot in slots:
+        if "pm" in slot.lower():
+            slots_obj.append(currentDate.replace(hour=((int(slot.split(":")[0]) % 12) + 12), minute=int(slot.split(":")[1][:2])))
+        else:
+            slots_obj.append(currentDate.replace(hour=(int(slot.split(":")[0])), minute=int(slot.split(":")[1][:2])))
+
+    while AUTOMATE:
+        print("Sending Message!")
+        currentDate = datetime.datetime.now()
+        if (currentDate.strftime("%a") is not "Sat") or (currentDate.strftime("%a") is not "Sun"):
+            if currentDate in slots_obj:
+                reply = TimeTable.fetch_next_room_number(df)
+                send_message(to=request.values['From'], body=reply)
+
+
+def Main():
     try:
         pd.read_csv("TimeTable.csv")
         # TimeTable.render_mpl_table(df, header_columns=1, col_width=7).get_figure().savefig("TimeTable.png", dpi=200)
@@ -118,94 +160,95 @@ def parse_msg(ql):
 
     resp = ""
 
-    if ("hi" in ql) or ("hello" in ql) or ("good morning" in ql) or ("hola" in ql) or ("hey" in ql):
-        resp = rd.choice(greetings) + " "
-        f = 1
-    
-    if ("thank" in  ql) or ("bye" in ql):
-        resp += rd.choice(see_offs)
-        f = 1
-    
-    if (("lock" in ql) and ("pc" in ql)):
-        resp += "You're PC has been locked! "
-        ctypes.windll.user32.LockWorkStation()
-        f = 1
+    try:
 
-    if ("hibernate" in ql) and ("pc" in ql):
-        resp += "You're PC has been hibernated! " + rd.choice(see_offs)
-        f = 1
-    
-    if ("send" in ql) and ("time table" in ql):
-        send_message(request.values['From'], "Here you go!", TT_URL)
-        resp += "Happy to Help! "
-        f = 1
-
-    if ("send" in ql) and ("screen shot" in ql):
-        pg.screenshot("AutoScreenShot.png")
-        time.sleep(10)
-        send_message(request.values['From'], "Here you go!", SS_URL)
-        resp += "Hope that Helped! "
-        f = 1
-    
-    if ("google" in ql):
-        resp += "Here is what I found:\n\n"
-        s = " ".join(ql.split()[ql.split().index("google")+1:])
-        print(s)
+        if ("hi" in ql) or ("hello" in ql) or ("good morning" in ql) or ("hola" in ql) or ("hey" in ql):
+            resp = rd.choice(greetings) + " "
+            f = 1
         
-        j = 1
-        for i in kg_api.google_search(s):
-            if "sorry! coudn't" in i.lower():
-                break
-            if len(resp) < 1000:
-                if i[-2] == "-":
-                    for k in search(i.split("*")[1], stop=1, tld="co.in"):
-                        resp += "*" + str(j) + "*. " + i + " " + k + "\n\n"    
+        if ("thank" in  ql) or ("bye" in ql):
+            resp += rd.choice(see_offs)
+            f = 1
+        
+        if (("lock" in ql) and ("pc" in ql)):
+            resp += "You're PC has been locked! "
+            ctypes.windll.user32.LockWorkStation()
+            f = 1
+
+        if ("hibernate" in ql) and ("pc" in ql):
+            resp += "You're PC has been hibernated! " + rd.choice(see_offs)
+            f = 1
+        
+        if ("send" in ql) and ("time table" in ql):
+            send_message(request.values['From'], "Here you go!", TT_URL)
+            resp += "Happy to Help! "
+            f = 1
+
+        if ("send" in ql) and ("screen shot" in ql):
+            pg.screenshot("AutoScreenShot.png")
+            time.sleep(10)
+            send_message(request.values['From'], "Here you go!", SS_URL)
+            resp += "Hope that Helped! "
+            f = 1
+        
+        if ("google" in ql):
+            resp += "Here is what I found:\n\n"
+            s = " ".join(ql.split()[ql.split().index("google")+1:])
+            print(s)
+            
+            j = 1
+            for i in kg_api.google_search(s):
+                if "sorry! coudn't" in i.lower():
+                    break
+                if len(resp) < 1000:
+                    if i[-2] == "-":
+                        for k in search(i.split("*")[1], stop=1, tld="co.in"):
+                            resp += "*" + str(j) + "*. " + i + " " + k + "\n\n"    
+                            j += 1
+                    else:
+                        resp += "*" + str(j) + "*. " + i + "\n\n"    
                         j += 1
-                else:
-                    resp += "*" + str(j) + "*. " + i + "\n\n"    
-                    j += 1
+            
+            # for i in search(s, num=5, stop=10, tld="co.in"):
+            #     resp += "*" + str(j) + ".* " + i + "\n\n"
+            
+            f = 1
         
-        # for i in search(s, num=5, stop=10, tld="co.in"):
-        #     resp += "*" + str(j) + ".* " + i + "\n\n"
-        
-        f = 1
-    
-    if ("update" in ql) and ("time table" in ql):
-        TimeTable.get_time_table()
-        resp += "Time Table successfully updated! "
-        f = 1
+        if ("update" in ql) and ("time table" in ql):
+            TimeTable.get_time_table()
+            resp += "Time Table successfully updated! "
+            f = 1
 
-    if ("next" in ql) and ("class" in ql):
-        resp += TimeTable.fetch_next_room_number(pd.read_csv("TimeTable.csv")) + " "
-    
-    elif (("current" in ql) or ("now" in ql) or ("right" in ql)) and ("class" in ql):
-        resp += TimeTable.fetch_next_room_number(pd.read_csv("TimeTable.csv"), False) + " "
-    
-    elif (len(ql) == 1) and (ord(ql) > 200):
-        resp = get_emojipedia_description(ql)
-    
-    elif f == 0:
-        resp += "Here is what I found:\n\n"
-        # s = " ".join(ql.split()[ql.split().index("google")+1:])
-        # print(s)
+        if ("next" in ql) and ("class" in ql):
+            resp += TimeTable.fetch_next_room_number(pd.read_csv("TimeTable.csv")) + " "
         
-        j = 1
-        for i in kg_api.google_search(ql):
-            if "sorry! coudn't" in i.lower():
-                break
-            if len(resp) < 1000:
-                if i[-2] == "-":
-                    for k in search(i.split("*")[1], stop=1, tld="co.in"):
-                        resp += "*" + str(j) + "*. " + i + " " + k + "\n\n"    
+        elif (("current" in ql) or ("now" in ql) or ("right" in ql)) and ("class" in ql):
+            resp += TimeTable.fetch_next_room_number(pd.read_csv("TimeTable.csv"), False) + " "
+        
+        elif (len(ql) == 1) and (ord(ql) > 200):
+            resp = get_emojipedia_description(ql)
+        
+        elif f == 0:
+            resp += "Here is what I found:\n\n"
+            # s = " ".join(ql.split()[ql.split().index("google")+1:])
+            # print(s)
+            
+            j = 1
+            for i in kg_api.google_search(ql):
+                if "sorry! coudn't" in i.lower():
+                    break
+                if len(resp) < 1000:
+                    if i[-2] == "-":
+                        for k in search(i.split("*")[1], stop=1, tld="co.in"):
+                            resp += "*" + str(j) + "*. " + i + " " + k + "\n\n"    
+                            j += 1
+                    else:
+                        resp += "*" + str(j) + "*. " + i + "\n\n"    
                         j += 1
-                else:
-                    resp += "*" + str(j) + "*. " + i + "\n\n"    
-                    j += 1
-
-        if "sorry! coudn't" in resp.lower():
+        except:
             resp = rd.choice(errors)
     
-    print(len(resp))
+    print(resp, len(resp))
 
     return resp
 

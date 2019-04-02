@@ -7,8 +7,8 @@ import datetime
 from selenium import webdriver
 
 
-CLASS_ID = 4
-BATCH_ID = "CS 1"
+CLASS_ID = 10
+BATCH_ID = "CS 14"
 
 def get_time_table():
 
@@ -94,7 +94,7 @@ def render_mpl_table(data, col_width=3.0, row_height=3.5, font_size=32,
 
 # render_mpl_table(df, header_columns=1, col_width=7).get_figure().savefig("TimeTableG.png", dpi=200)
 
-def fetch_next_room_number(df, next_rn=True):
+def fetch_next_room_number(df, next_rn=True, currentDate=datetime.datetime.now()):
 
     days = ["Mon", "Tue", "Wed", "Thu", "Fri"]
 
@@ -102,7 +102,7 @@ def fetch_next_room_number(df, next_rn=True):
     today = currentDate.strftime("%a")
 
     if today not in days:
-        print("Its A Holiday Mate!")
+        return "Its A Holiday Mate!"
 
     slots = df.columns.tolist()[1:]
     slots = list(map(lambda x: x.split(" - "), slots))
@@ -151,4 +151,7 @@ def fetch_next_room_number(df, next_rn=True):
             return "You've a *break* right now! Enjoy!"
         return "You're class right now is *" + y + "*"
 
+
+if __name__ == "__main__":
+    print(get_time_table())
 
