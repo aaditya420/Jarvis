@@ -64,22 +64,25 @@ def receive_message():
     # Get the querie
     querie = request.values.get('Body')
 
-    if ("auto" in querie.lower()):
-        if ("start" in querie.lower()):
-            AUTOMATE = 1
-            reply = "Automatic Updates Enabled!"
-        elif ("stop" in querie.lower()):
-            AUTOMATE = 0
-            reply = "Automatic Updates Disabled!"
-        else:
-            reply = parse_msg(querie)
-    else:
-        reply = parse_msg(querie)
+    print(querie)
 
-    send_message(to=request.values['From'], body=reply)
+
+    # if ("auto" in querie.lower()):
+    #     if ("start" in querie.lower()):
+    #         AUTOMATE = 1
+    #         reply = "Automatic Updates Enabled!"
+    #     elif ("stop" in querie.lower()):
+    #         AUTOMATE = 0
+    #         reply = "Automatic Updates Disabled!"
+    #     else:
+    #         reply = parse_msg(querie)
+    # else:
+    #     reply = parse_msg(querie)
+
+    # send_message(to=request.values['From'], body=reply)
     
-    if "hibernated" in reply.lower():
-        hibernate()
+    # if "hibernated" in reply.lower():
+    #     hibernate()
 
     return ('', 204)
 
